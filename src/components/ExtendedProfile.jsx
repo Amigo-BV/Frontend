@@ -3,23 +3,14 @@ import React from 'react';
 const ExtendedProfile = ({ back }) => {
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white font-['Inter'] p-4">
-      <h1 className="text-2xl font-bold text-[#070f26] mb-4">Extended Profile</h1>
-      <button
-        onClick={back}
-        className="w-full py-4 bg-gray-500 text-white rounded-xl font-bold text-lg"
-      >
-        Back
-      </button>
+    
       <div className="w-[414px] h-auto flex-col items-center bg-white">
         {/* Header Section */}
         <div className="w-full h-[505px] shadow-md relative">
-          <div className="absolute top-4 left-4 p-2 bg-white/50 backdrop-blur rounded-lg">
-            <span className="text-sm font-semibold text-gray-800">19km</span>
-          </div>
           <img
-            src="https://via.placeholder.com/414x505"
-            alt="Profile background"
-            className="w-full h-full object-cover"
+            src="/assets/Image.png" // 배경 이미지 경로
+            alt="Background"
+            className="w-full h-full object-cover" 
           />
         </div>
 
@@ -40,16 +31,16 @@ const ExtendedProfile = ({ back }) => {
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-4 px-5">
           {[
-            { label: "Aries", icon: "" },
-            { label: "Non-Smoker", icon: "" },
-            { label: "Occasional Drinker", icon: "" },
-            { label: "Vaccinated", icon: "" },
+            { label: "Aries", icon: "/assets/Star.png" },
+            { label: "Non-Smoker", icon: "/assets/Smoking.png" },
+            { label: "Occasional Drinker", icon: "/assets/Glass.png" },
+            { label: "Vaccinated", icon: "/assets/Mask.png" },
           ].map((tag, index) => (
             <div
               key={index}
               className="flex items-center gap-2 px-3 py-1 bg-pink-100/50 border border-pink-200 rounded-full"
             >
-              <span>{tag.icon}</span>
+              <img src={tag.icon} alt={tag.label} className="w-4 h-4 object-contain" />
               <span className="text-pink-700 text-sm font-medium">{tag.label}</span>
             </div>
           ))}
@@ -60,9 +51,9 @@ const ExtendedProfile = ({ back }) => {
           <h2 className="text-base font-bold text-gray-900">Favorite Music</h2>
           <div className="flex gap-4 mt-3">
             {[
-              { genre: "Punk", img: "https://via.placeholder.com/150" },
-              { genre: "Rock", img: "https://via.placeholder.com/150" },
-              { genre: "Pop", img: "https://via.placeholder.com/150" },
+              { genre: "Punk", img: "/assets/Container.png" },
+              { genre: "Rock", img: "/assets/Checkbox.png" },
+              { genre: "Pop", img: "/assets/Switch.png" },
             ].map((music, index) => (
               <div key={index} className="relative w-[150px] h-[150px]">
                 <img
@@ -82,17 +73,31 @@ const ExtendedProfile = ({ back }) => {
         <div className="mt-6 px-5">
           <h2 className="text-base font-bold text-gray-900">5 Instagram Photos</h2>
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {Array(5)
-              .fill("https://via.placeholder.com/100")
-              .map((img, index) => (
-                <img
-                  key={index}
-                  src={img}
-                  alt={`Instagram ${index + 1}`}
-                  className="w-full h-[100px] rounded-lg object-cover"
-                />
-              ))}
+            {[
+              { img: "/assets/Tooltip.png", alt: "Instagram 1" },
+              { img: "/assets/Tooltip2.png", alt: "Instagram 2" },
+              { img: "/assets/Tooltip3.png", alt: "Instagram 3" },
+              { img: "/assets/Tooltip4.png", alt: "Instagram 4" },
+              { img: "/assets/Tooltip5.png", alt: "Instagram 5" },
+            ].map((photo, index) => (
+              <img
+                key={index}
+                src={photo.img}
+                alt={photo.alt}
+                className="w-full h-[100px] rounded-lg object-cover"
+              />
+            ))}
           </div>
+        </div>
+
+        {/* Add margin-top to separate Back button from Instagram photos */}
+        <div className="mt-8">
+          <button
+            onClick={back}
+            className="w-full py-4 bg-gray-500 text-white rounded-xl font-bold text-lg"
+          >
+            Back
+          </button>
         </div>
 
         {/* Actions */}
@@ -103,22 +108,6 @@ const ExtendedProfile = ({ back }) => {
           </div>
         </div>
 
-        {/* Reaction Buttons */}
-        <div className="mt-6 flex justify-around items-center">
-          {[
-            { emoji: "", label: "Dislike" },
-            { emoji: "", label: "Think" },
-            { emoji: "", label: "Like" },
-          ].map((reaction, index) => (
-            <button
-              key={index}
-              className="flex flex-col items-center text-gray-700 text-sm font-medium"
-            >
-              <span className="text-2xl">{reaction.emoji}</span>
-              <span>{reaction.label}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

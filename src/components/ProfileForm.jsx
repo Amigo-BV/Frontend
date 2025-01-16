@@ -1,38 +1,58 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const ProfileForm = ({ next }) => {
+  const [gender, setGender] = useState("Female"); // 기본값을 "Female"로 설정
+  const [showMe, setShowMe] = useState("Everyone"); // 기본값을 "Everyone"으로 설정
+  const [photos, setPhotos] = useState([null, null, null, null, null, null]); // 사진 상태
+
   const handleSubmit = () => {
-    const profileData = { name: "John Doe", age: 30 }; // 샘플 데이터
+    const profileData = { name: "John Doe", age: 30, gender, showMe, photos }; // 프로필 데이터에 성별, ShowMe, 사진 추가
     next(profileData); // 다음 화면으로 이동
+  };
+
+  const handlePhotoUpload = (index, event) => {
+    const updatedPhotos = [...photos];
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updatedPhotos[index] = reader.result; // 선택된 사진을 해당 슬롯에 저장
+        setPhotos(updatedPhotos);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <div className="w-full max-w-md mx-auto bg-white min-h-screen p-4 pb-20 font-['Inter']">
       {/* Title */}
       <h1 className="text-xl font-bold mb-6">Create your profile!</h1>
-      
+
       {/* Photo Grid */}
       <div className="grid grid-cols-3 gap-2 mb-6">
-        {[1, 2, 3, 4, 5, 6].map((index) => (
+        {photos.map((photo, index) => (
           <div key={index} className="relative aspect-[3/4] rounded-xl overflow-hidden">
-            {/* 첫 두 칸은 이미지가 들어갈 자리 */}
-            {index <= 2 ? (
-              <div className="w-full h-full bg-gray-100" />
-            ) : (
-              <div className="w-full h-full bg-gray-100" />
-            )}
-            {/* 플러스 버튼 */}
-            <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center">
-              <div className="w-4 h-4 text-pink-500">+</div>
+            {/* Display selected photo or default placeholder */}
+            <div className={`w-full h-full ${photo ? 'bg-transparent' : 'bg-gray-100'}`}>
+              {photo ? (
+                <img src={photo} alt={`Uploaded ${index}`} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gray-100 flex justify-center items-center">
+                  <span className="text-pink-500 text-3xl">+</span>
+                </div>
+              )}
             </div>
+
+            {/* File input for uploading photo */}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhotoUpload(index, e)}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+            />
           </div>
         ))}
       </div>
-
-      {/* Add Photo Button */}
-      <button className="w-full py-3 mb-6 border-2 border-pink-500 text-pink-500 rounded-xl font-medium">
-        Add a photo to stand out.
-      </button>
 
       {/* Form Fields */}
       <div className="space-y-6">
@@ -59,15 +79,12 @@ const ProfileForm = ({ next }) => {
         <div>
           <label className="block text-sm font-medium mb-2">Gender</label>
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Male', selected: false },
-              { label: 'Female', selected: true },
-              { label: 'Non-binary', selected: false }
-            ].map(({ label, selected }) => (
+            {["Male", "Female", "Non-binary"].map((label) => (
               <button
                 key={label}
+                onClick={() => setGender(label)} // 버튼 클릭 시 상태 변경
                 className={`py-2 px-4 rounded-full border-2 ${
-                  selected 
+                  gender === label // 선택된 값에 따라 스타일 적용
                     ? 'bg-pink-500 border-pink-500 text-white' 
                     : 'border-pink-500 text-pink-500'
                 } text-sm font-medium`}
@@ -82,15 +99,12 @@ const ProfileForm = ({ next }) => {
         <div>
           <label className="block text-sm font-medium mb-2">Show Me</label>
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: 'Male', selected: false },
-              { label: 'Female', selected: false },
-              { label: 'Everyone', selected: true }
-            ].map(({ label, selected }) => (
+            {["Male", "Female", "Everyone"].map((label) => (
               <button
                 key={label}
+                onClick={() => setShowMe(label)} // 버튼 클릭 시 상태 변경
                 className={`py-2 px-4 rounded-full border-2 ${
-                  selected 
+                  showMe === label // 선택된 값에 따라 스타일 적용
                     ? 'bg-pink-500 border-pink-500 text-white' 
                     : 'border-pink-500 text-pink-500'
                 } text-sm font-medium`}
@@ -131,11 +145,6 @@ const ProfileForm = ({ next }) => {
           />
         </div>
       </div>
-
-      {/* Delete Account */}
-      <button className="w-full text-pink-500 text-sm font-medium mt-8 mb-4">
-        Delete My Account
-      </button>
 
       {/* Save Button - Fixed at bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white">
