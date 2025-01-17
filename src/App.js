@@ -52,7 +52,9 @@ function App() {
       case "extended":
         return <ExtendedProfile back={() => goToNextScreen("preview")} />;
       case "messages":
-        return <MessagesAndMatches />;
+        return <MessagesAndMatches next={() => goToNextScreen("profilePreview")} />;
+      case "profilePreview":
+        return <ProfilePreview next={() => goToNextScreen("extended")} />;
       default:
         return <SplashScreen next={() => goToNextScreen("login")} />;
     }
