@@ -1,87 +1,130 @@
-import React, { useState } from 'react'; 
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-const ProfilePreview = ({ next, messages }) => {
+const ProfilePreview = ({ next, messages, loggedInAddress }) => {
+  const addresses = [
+    '0x90F79bf6EB2c4f870365E785982E1f101E93b906',
+    '0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65',
+    '0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc',
+  ];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [reaction, setReaction] = useState(null);
+  const [userData, setUserData] = useState({
+    username: '',
+    about: '',
+    profileImageCID: '',
+  });
 
-  // Reaction 버튼 클릭 시 실행되는 함수
-  const handleReactionClick = (reactionId) => {
-    setReaction(reactionId); // 클릭한 반응 저장
-    if (reactionId === 2) {  // 2번 버튼이 클릭되었을 때
-      next(); // ExtendedProfile로 이동
+  const targetAddress = addresses[currentIndex];
+
+  // 1) 프로필 정보 로드
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const res = await axios.get(`http://localhost:3000/users/${targetAddress}`);
+        setUserData(res.data);
+      } catch (error) {
+        console.error('유저 정보 가져오기 실패:', error);
+        setUserData({ username: 'Unknown', about: 'N/A', profileImageCID: '' });
+      }
+    };
+    fetchUserData();
+  }, [targetAddress]);
+
+  // 2) IPFS 이미지 URL
+  const profileImageUrl = userData.profileImageCID
+    ? `https://gateway.pinata.cloud/ipfs/${userData.profileImageCID}`
+    : '/assets/Image.png';
+
+  // 3) 좋아요 로직
+  const handleLike = async () => {
+    try {
+      // 좋아요 전송 (토큰 transfer)
+      await axios.post('http://localhost:3000/like/transfer', {
+        to: targetAddress,
+        amount: '1', 
+      });
+      alert(`좋아요 전송 성공! (to=${targetAddress})`);
+
+      // **(A) 로컬 스토리지에 마지막 좋아요 대상 정보 저장**
+      const lastLikedUser = {
+        username: userData.username,
+        // profileImageCID만 있으면, MessagesAndMatches에서 IPFS 경로로 바꿔야 하므로
+        // 여기서 직접 url을 만들어 저장하거나, CID만 저장해도 됨
+        profileImageUrl: profileImageUrl, 
+      };
+      localStorage.setItem('lastLikedUser', JSON.stringify(lastLikedUser));
+
+      // 다음 프로필로 이동
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % addresses.length);
+    } catch (error) {
+      console.error('좋아요 전송 실패:', error);
+      alert('좋아요 전송에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
-  // Chat 아이콘 클릭 시 MessagesAndMatches로 이동하는 함수
+  // 4) Reaction 버튼
+  const handleReactionClick = (reactionId) => {
+    setReaction(reactionId);
+    console.log(`Reaction ${reactionId} selected!`);
+
+    if (reactionId === 1) {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % addresses.length);
+    } else if (reactionId === 2) {
+      next(userData);
+    } else if (reactionId === 3) {
+      handleLike(); 
+    }
+  };
+
   const handleChatClick = () => {
-    messages(); // MessagesAndMatches로 이동
+    messages();
   };
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white font-['Inter'] p-4">
+    <div className="w-full max-w-md mx-auto min-h-screen bg-white p-4">
       {/* Top Navigation */}
       <div className="h-[100px]">
-        {/* Status Bar */}
         <div className="h-8 bg-white" />
-        
-        {/* Nav Icons */}
         <div className="h-[68px] px-4 flex justify-between items-center">
-          {/* Logo */}
           <img
-            src="/assets/AMIGO LOGO.png" // 로고 이미지 경로
-            alt="AMIGO Logo" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg" // 크기 및 스타일
+            src="/assets/AMIGO LOGO.png"
+            alt="AMIGO Logo"
+            className="w-[46px] h-[46px] rounded-lg"
           />
-          {/* Chat icon */}
           <img
-            src="/assets/Messages.png" // 메시지 아이콘 경로
-            alt="Messages Icon" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg" // 크기 및 스타일
-            onClick={handleChatClick} // Chat 아이콘 클릭 시 함수 실행
+            src="/assets/Messages.png"
+            alt="Messages Icon"
+            className="w-[46px] h-[46px] rounded-lg"
+            onClick={handleChatClick}
           />
-          {/* Profile icon */}
           <img
-            src="/assets/User.png" // 사용자 아이콘 경로
-            alt="User Icon" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg" // 크기 및 스타일
+            src="/assets/User.png"
+            alt="User Icon"
+            className="w-[46px] h-[46px] rounded-lg"
           />
         </div>
       </div>
 
       {/* Main Profile Card */}
       <div className="relative w-full h-[calc(100vh-100px)]">
-        {/* Profile Image Container */}
         <div className="w-full h-full relative">
-          {/* Background Image */}
           <img
-            src="/assets/Image.png" // 배경 이미지 경로
-            alt="Background"
-            className="w-full h-full object-cover" // 이미지 스타일: 전체 화면 채우기
+            src={profileImageUrl}
+            alt="Profile Background"
+            className="w-full h-full object-cover"
           />
-
-          {/* Location Badge */}
-          <div className="absolute top-4 left-4 bg-white rounded-full py-2 px-4 flex items-center gap-2">
-            <img
-              src="/assets/Vector.png" // 위치 아이콘 경로
-              alt="Location Icon"
-              className="w-4 h-4 object-contain"
-            />
-            <span className="text-[#070f26] font-medium">19km</span>
-          </div>
-
-          {/* Skip Button */}
-          <div className="absolute top-4 right-4 bg-white rounded-lg p-2 flex items-center justify-center">
-            <img
-              src="/assets/Return.png" // 반환 버튼 아이콘 경로
-              alt="Return Icon"
-              className="w-8 h-8 object-contain"
-            />
-          </div>
 
           {/* Profile Info */}
           <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/50 to-transparent p-6 backdrop-blur-md">
             <div className="text-white">
-              <h1 className="text-[28px] font-bold">Gabriel Taveira, 21</h1>
-              <p className="text-lg">Let's turn good vibes into great moments!</p>
+              <h1 className="text-[28px] font-bold">
+                {userData.username || 'Loading...'}
+              </h1>
+              <p className="text-lg">
+                {userData.about || 'Fetching user details...'}
+              </p>
             </div>
 
             {/* Reaction Buttons */}
@@ -93,10 +136,11 @@ const ProfilePreview = ({ next, messages }) => {
               ].map((btn) => (
                 <div
                   key={btn.id}
-                  className="w-14 h-14 bg-white rounded-full flex items-center justify-center"
-                  onClick={() => handleReactionClick(btn.id)} // 반응 클릭 시 함수 실행
+                  className={`w-14 h-14 ${
+                    reaction === btn.id ? 'bg-green-300' : 'bg-white'
+                  } rounded-full flex items-center justify-center cursor-pointer`}
+                  onClick={() => handleReactionClick(btn.id)}
                 >
-                  {/* Reaction Icon */}
                   <img
                     src={btn.src}
                     alt={btn.alt}
@@ -105,6 +149,15 @@ const ProfilePreview = ({ next, messages }) => {
                 </div>
               ))}
             </div>
+
+            {/* Reaction 결과 표시 */}
+            {reaction && (
+              <div className="text-white text-center mt-4">
+                {reaction === 1 && 'Skip! (다음 프로필)'}
+                {reaction === 2 && 'Thinking deeply... (확장 프로필)'}
+                {reaction === 3 && 'You love this profile! (좋아요 전송)'}
+              </div>
+            )}
           </div>
         </div>
       </div>

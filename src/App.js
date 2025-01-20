@@ -1,83 +1,98 @@
-import React, { useState } from "react";
-import SplashScreen from "./components/SplashScreen";
-import LoginScreen from "./components/LoginScreen";
-import VerificationCode from "./components/VerificationCode";
-import ProfileForm from "./components/ProfileForm";
-import LocationPermission from "./components/LocationPermission";
-import DiscoveryLoading from "./components/DiscoveryLoading";
-import ProfilePreview from "./components/ProfilePreview";
-import ExtendedProfile from "./components/ExtendedProfile";
-import MessagesAndMatches from "./components/MessagesAndMatches";
+import React, { useState } from 'react';
+import SplashScreen from './components/SplashScreen';
+import LoginScreen from './components/LoginScreen';
+import VerificationCode from './components/VerificationCode';
+import ProfileForm from './components/ProfileForm';
+import LocationPermission from './components/LocationPermission';
+import DiscoveryLoading from './components/DiscoveryLoading';
+import ProfilePreview from './components/ProfilePreview';
+import ExtendedProfile from './components/ExtendedProfile';
+import MessagesAndMatches from './components/MessagesAndMatches';
 
 function App() {
-  const [screen, setScreen] = useState("splash"); 
-  const [userData, setUserData] = useState({}); 
-  const [previousScreen, setPreviousScreen] = useState(null);
+  const [screen, setScreen] = useState('splash'); // 현재 화면 상태
+  const [userData, setUserData] = useState({});   // 유저 데이터 상태
+  const [previousScreen, setPreviousScreen] = useState(null); // 이전 화면 상태
 
-  // 화면 변경 시 이전 화면 저장 + userData 업데이트
+  // 다음 화면으로 이동
   const goToNextScreen = (nextScreen, data = {}) => {
     setPreviousScreen(screen);
     setUserData((prev) => ({ ...prev, ...data }));
     setScreen(nextScreen);
   };
 
-  // 이전 화면으로 돌아가기
+  // 이전 화면으로 이동
   const goToPreviousScreen = () => {
     if (previousScreen) {
       setScreen(previousScreen);
     }
   };
 
+  // 화면 렌더링
   const renderScreen = () => {
     switch (screen) {
-      case "splash":
+      case 'splash':
         return (
           <SplashScreen
-            next={() => goToNextScreen("login")}
+            next={(data) => goToNextScreen('login', data)} // 지갑 주소와 서명 저장
           />
         );
-      case "login":
+      case 'login':
         return (
           <LoginScreen
-            // phoneNumber 입력 후
-            next={(phone) => goToNextScreen("verify", { phone })}
+            next={(phone) => goToNextScreen('verify', { phone })}
           />
         );
-      case "verify":
+      case 'verify':
         return (
           <VerificationCode
-            // 인증코드 완료 후
-            next={() => goToNextScreen("profile")}
+            next={() => goToNextScreen('profile')}
             back={goToPreviousScreen}
           />
         );
-      case "profile":
-        // userData.phone을 넘겨줌 (ProfileForm에서 전화번호도 전송 가능)
+      case 'profile':
         return (
           <ProfileForm
-            phone={userData.phone || ""}
-            next={(profileData) => goToNextScreen("location", profileData)}
+            phone={userData.phone || ''}
+            userAddress={userData.address || ''}
+            signature={userData.signature || ''}
+            next={(profileData) => goToNextScreen('location', profileData)}
           />
         );
-      case "location":
-        return <LocationPermission next={() => goToNextScreen("loading")} />;
-      case "loading":
-        return <DiscoveryLoading next={() => goToNextScreen("preview")} />;
-      case "preview":
+      case 'location':
+        return <LocationPermission next={() => goToNextScreen('loading')} />;
+      case 'loading':
+        return <DiscoveryLoading next={() => goToNextScreen('preview')} />;
+
+      // ------------ 여기서부터 Preview / Extended / Messages ------------
+      case 'preview':
         return (
           <ProfilePreview
-            next={() => goToNextScreen("extended")}
-            messages={() => goToNextScreen("messages")}
+            // ExtendedProfile로 갈 때 userData를 넘기려면
+            next={(selectedUserData) => goToNextScreen('extended', { selectedUserData })}
+            // MessagesAndMatches 화면으로 이동
+            messages={() => goToNextScreen('messages')}
           />
         );
-      case "extended":
-        return <ExtendedProfile back={() => goToNextScreen("preview")} />;
-      case "messages":
-        return <MessagesAndMatches next={() => goToNextScreen("profilePreview")} />;
-      case "profilePreview":
-        return <ProfilePreview next={() => goToNextScreen("extended")} />;
+      case 'extended':
+        return (
+          <ExtendedProfile
+            // 뒤로가기 시 preview로 돌아감
+            back={() => goToNextScreen('preview')}
+            // userData 안에 selectedUserData가 담겨 있음
+            userData={userData.selectedUserData}
+          />
+        );
+      case 'messages':
+        return (
+          <MessagesAndMatches 
+            // 여기서 로고 클릭 시 preview로 돌아가고 싶다면,
+            next={(scr) => goToNextScreen(scr)} 
+          />
+        );
       default:
-        return <SplashScreen next={() => goToNextScreen("login")} />;
+        // 예외 상황 - splash로 돌려보냄
+        return <SplashScreen next={(data) => goToNextScreen('login', data)} />;
     }
   };
 

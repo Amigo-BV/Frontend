@@ -130,13 +130,7 @@ const VerificationCode = ({ next, back }) => {
         </button>
       </div>
 
-      {/* Resend Code */}
-      <div className="fixed bottom-8 left-0 right-0 flex flex-col items-center">
-        <button className="text-lg font-semibold text-[#070f26]">
-          Resend the code
-        </button>
-        <div className="w-[154px] h-1.5 bg-pink-500 rounded-full mt-1" />
-      </div>
+      
     </div>
   );
 };

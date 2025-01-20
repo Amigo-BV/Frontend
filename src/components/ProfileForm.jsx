@@ -1,85 +1,124 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import {
+  keccak256,
+  toUtf8Bytes,
+  BrowserProvider,
+  getBytes,
+} from 'ethers';
 
-const ProfileForm = ({ next, phone }) => {
-  const [gender, setGender] = useState("Female");
-  const [showMe, setShowMe] = useState("Everyone");
-
+const ProfileForm = ({ next, phone, userAddress }) => {
   const [photos, setPhotos] = useState([null, null, null, null, null, null]);
   const [username, setUsername] = useState('');
   const [about, setAbout] = useState('');
+  const [gender, setGender] = useState('Female'); 
+  const [showMe, setShowMe] = useState('Everyone'); 
 
-  // 사진 업로드 핸들러
   const handlePhotoUpload = (index, event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      // photos[index] = { file, preview(base64) }
-      const updatedPhotos = [...photos];
-      updatedPhotos[index] = {
-        file: file,
-        preview: reader.result, // UI로 보여줄 base64
-      };
-      setPhotos(updatedPhotos);
+      const updated = [...photos];
+      updated[index] = { file, preview: reader.result };
+      setPhotos(updated);
     };
-    reader.readAsDataURL(file); // base64 변환
+    reader.readAsDataURL(file);
   };
 
-  // 제출 핸들러
-  // 제출 핸들러
-const handleSubmit = async () => {
-  try {
-    // 1) 대표 이미지(첫 번째 등록된 사진)
+  const uploadImage = async () => {
     const mainPhoto = photos.find((p) => p !== null);
+    if (!mainPhoto) {
+      throw new Error('Please upload at least one image');
+    }
 
-    // 2) formData 생성
     const formData = new FormData();
-    formData.append('username', username);
-    formData.append('about', about);
-    if (phone) {
-      formData.append('phone', phone);
-    }
+    formData.append('file', mainPhoto.file);
 
-    if (mainPhoto && mainPhoto.file) {
-      formData.append('file', mainPhoto.file);
-    }
-
-    // 3) 백엔드 전송 (POST /users/register)
-    const response = await axios.post(
-      'http://localhost:3000/users/register',
+    const res = await axios.post(
+      'http://localhost:3000/users/upload-image',
       formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+      {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      }
     );
 
-    // 간단한 성공 메시지 출력
-    console.log('등록 성공!');
-    alert('등록 성공!');
+    return res.data.cid;
+  };
 
-    // 4) 다음 화면으로 이동
-    next && next(response.data);
+  const signRegisterMessage = async (cid) => {
+    if (!window.ethereum) {
+      throw new Error('MetaMask is required');
+    }
+    if (!userAddress) {
+      throw new Error('User address is missing');
+    }
 
-  } catch (error) {
-    console.error('회원가입 에러:', error);
-    alert('회원가입 실패!');
-  }
-};
+    const provider = new BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
 
+    // 주소를 소문자로 변환
+    const lowercasedAddress = userAddress.toLowerCase();
+
+    // 서명 메시지 구성
+    const domainString = `Register:${lowercasedAddress}:${username}:${phone || ''}:${about}:${cid}`;
+    console.log('Original message:', domainString);
+
+    const messageHash = keccak256(toUtf8Bytes(domainString));
+    console.log('Message hash:', messageHash);
+
+    // 메시지 해시의 바이트 형태로 서명
+    const signature = await signer.signMessage(getBytes(messageHash));
+    console.log('Signature:', signature);
+
+    return signature;
+  };
+
+  const registerWithSig = async (signature, cid) => {
+    const body = {
+      user: userAddress,
+      username,
+      phone: phone || '',
+      about,
+      gender,
+      showMe,
+      cid,
+      signature,
+    };
+
+    const res = await axios.post('http://localhost:3000/users/register-with-sig', body);
+    return res.data;
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const cid = await uploadImage();
+      const signature = await signRegisterMessage(cid);
+      const { success, txHash } = await registerWithSig(signature, cid);
+
+      if (success) {
+        alert(`Registration successful! Transaction: ${txHash}`);
+        next && next({ txHash });
+      } else {
+        throw new Error('Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
 
   return (
     <div className="w-full max-w-md mx-auto bg-white min-h-screen p-4 pb-20 font-['Inter']">
-      {/* Title */}
       <h1 className="text-xl font-bold mb-6">Create your profile!</h1>
 
       {/* Photo Grid */}
       <div className="grid grid-cols-3 gap-2 mb-6">
         {photos.map((photo, index) => (
           <div key={index} className="relative aspect-[3/4] rounded-xl overflow-hidden">
-            {/* Display selected photo or default placeholder */}
             <div className={`w-full h-full ${photo ? 'bg-transparent' : 'bg-gray-100'}`}>
               {photo ? (
-                // base64 미리보기
                 <img
                   src={photo.preview}
                   alt={`Uploaded ${index}`}
@@ -91,8 +130,6 @@ const handleSubmit = async () => {
                 </div>
               )}
             </div>
-
-            {/* File input for uploading photo */}
             <input
               type="file"
               accept="image/*"
@@ -103,107 +140,76 @@ const handleSubmit = async () => {
         ))}
       </div>
 
-      {/* Form Fields */}
-      <div className="space-y-6">
-        {/* Name -> username */}
-        <div>
-          <label className="block text-sm font-medium mb-2">My Name</label>
-          <input
-            type="text"
-            placeholder="How would you like us to introduce you?"
-            className="w-full p-3 bg-gray-100 rounded-xl"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
+      {/* Username */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">My Name</label>
+        <input
+          type="text"
+          className="w-full p-3 bg-gray-100 rounded-xl"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="Name"
+        />
+      </div>
 
-        {/* About -> about */}
-        <div>
-          <label className="block text-sm font-medium mb-2">About Me</label>
-          <textarea
-            placeholder="Share something interesting about yourself!"
-            className="w-full p-3 bg-gray-100 rounded-xl resize-none h-24"
-            value={about}
-            onChange={(e) => setAbout(e.target.value)}
-          />
-        </div>
+      {/* About */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">About Me</label>
+        <textarea
+          className="w-full p-3 bg-gray-100 rounded-xl resize-none h-24"
+          value={about}
+          onChange={(e) => setAbout(e.target.value)}
+          placeholder="Tell us about yourself"
+        />
+      </div>
 
-        {/* Gender */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Gender</label>
-          <div className="grid grid-cols-3 gap-2">
-            {["Male", "Female", "Non-binary"].map((label) => (
-              <button
-                key={label}
-                onClick={() => setGender(label)}
-                className={`py-2 px-4 rounded-full border-2 ${
-                  gender === label
-                    ? 'bg-pink-500 border-pink-500 text-white'
-                    : 'border-pink-500 text-pink-500'
-                } text-sm font-medium`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Show Me */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Show Me</label>
-          <div className="grid grid-cols-3 gap-2">
-            {["Male", "Female", "Everyone"].map((label) => (
-              <button
-                key={label}
-                onClick={() => setShowMe(label)}
-                className={`py-2 px-4 rounded-full border-2 ${
-                  showMe === label
-                    ? 'bg-pink-500 border-pink-500 text-white'
-                    : 'border-pink-500 text-pink-500'
-                } text-sm font-medium`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-      
-        <div>
-          <div className="flex justify-between text-sm font-medium mb-2">
-            <span>Maximum Distance</span>
-            <span>24km</span>
-          </div>
-          <input
-            type="range"
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-500"
-            min="0"
-            max="100"
-            defaultValue={50}
-          />
-        </div>
-
-        <div>
-          <div className="flex justify-between text-sm font-medium mb-2">
-            <span>Age Range</span>
-            <span>18-100+</span>
-          </div>
-          <input
-            type="range"
-            className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-pink-500"
-            min="0"
-            max="100"
-            defaultValue={50}
-          />
+      {/* Gender */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">Gender</label>
+        <div className="grid grid-cols-3 gap-2">
+          {['Male', 'Female', 'Non-binary'].map((label) => (
+            <button
+              key={label}
+              onClick={() => setGender(label)}
+              className={`py-2 px-4 rounded-full border-2 ${
+                gender === label
+                  ? 'bg-pink-500 border-pink-500 text-white'
+                  : 'border-pink-500 text-pink-500'
+              } text-sm font-medium`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-    
+      {/* Show Me */}
+      <div className="mb-20">
+        <label className="block text-sm font-medium mb-2">Show Me</label>
+        <div className="grid grid-cols-3 gap-2">
+          {['Male', 'Female', 'Everyone'].map((label) => (
+            <button
+              key={label}
+              onClick={() => setShowMe(label)}
+              className={`py-2 px-4 rounded-full border-2 ${
+                showMe === label
+                  ? 'bg-pink-500 border-pink-500 text-white'
+                  : 'border-pink-500 text-pink-500'
+              } text-sm font-medium`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Submit */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white">
         <div className="max-w-md mx-auto">
-          <button 
+          <button
             onClick={handleSubmit}
-            className="w-full py-3 bg-pink-500 text-white rounded-xl font-medium">
+            className="w-full py-3 bg-pink-500 text-white rounded-xl font-medium"
+          >
             Save
           </button>
         </div>

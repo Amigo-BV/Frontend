@@ -1,38 +1,65 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const MessagesAndMatches = ({ next }) => {
+  // 기존 하드코딩된 프로필
+  const defaultProfiles = [
+    { name: "Ammer", img: "/assets/Profile1.png" },
+    { name: "Graham", img: "/assets/Profile2.png" },
+    { name: "Dave", img: "/assets/Profile3.png" },
+    { name: "Harry", img: "/assets/Profile4.png" },
+    { name: "Ansel", img: "/assets/Profile5.png" },
+  ];
+
+  const [profiles, setProfiles] = useState(defaultProfiles);
+
+  useEffect(() => {
+    const savedData = localStorage.getItem('lastLikedUser');
+    if (savedData) {
+      const { username, profileImageUrl } = JSON.parse(savedData);
+      if (username && profileImageUrl) {
+        const newProfile = {
+          name: username,
+          img: profileImageUrl,
+        };
+
+        // 중복 체크
+        setProfiles((prev) => {
+          const alreadyExists = prev.some((item) => item.name === username);
+          if (!alreadyExists) {
+            return [newProfile, ...prev];
+          } else {
+            return prev;
+          }
+        });
+      }
+    }
+  }, []);
 
   const handleLogoClick = () => {
-    next("profilePreview"); // ProfilePreview로 이동
+    next("preview");
   };
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white font-['Inter'] p-4">
+    <div className="w-full max-w-md mx-auto min-h-screen bg-white p-4">
       {/* Top Navigation */}
       <div className="h-[100px]">
-        {/* Status Bar */}
         <div className="h-8 bg-white" />
-        
-        {/* Nav Icons */}
         <div className="h-[68px] px-4 flex justify-between items-center">
-          {/* Logo */}
           <img
-            src="/assets/AMIGO LOGO.png" // 로고 이미지 경로
-            alt="AMIGO Logo" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg cursor-pointer" // 크기 및 스타일
-            onClick={handleLogoClick} // 클릭 시 ProfilePreview로 이동
+            src="/assets/AMIGO LOGO.png"
+            alt="AMIGO Logo"
+            className="w-[46px] h-[46px] rounded-lg cursor-pointer"
+            onClick={handleLogoClick}
           />
-          {/* Chat icon */}
           <img
-            src="/assets/Messages.png" // 메시지 아이콘 경로
-            alt="Messages Icon" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg" // 크기 및 스타일
+            src="/assets/Messages.png"
+            alt="Messages Icon"
+            className="w-[46px] h-[46px] rounded-lg"
           />
-          {/* Profile icon */}
           <img
-            src="/assets/User.png" // 사용자 아이콘 경로
-            alt="User Icon" // 대체 텍스트
-            className="w-[46px] h-[46px] rounded-lg" // 크기 및 스타일
+            src="/assets/User.png"
+            alt="User Icon"
+            className="w-[46px] h-[46px] rounded-lg"
           />
         </div>
       </div>
@@ -42,17 +69,13 @@ const MessagesAndMatches = ({ next }) => {
         <div className="flex justify-start items-center">
           <h2 className="text-lg font-bold text-gray-900">New Matches</h2>
           <div className="ml-2 px-2 py-1 bg-pink-500 text-white text-xs font-bold rounded-full">
-            15
+            {profiles.length}
           </div>
         </div>
+        
+        {/* 가로 스크롤 영역 */}
         <div className="flex gap-4 mt-4 overflow-x-auto">
-          {[
-            { name: "Ammer", img: "/assets/Profile1.png" },
-            { name: "Graham", img: "/assets/Profile2.png" },
-            { name: "Dave", img: "/assets/Profile3.png" },
-            { name: "Harry", img: "/assets/Profile4.png" },
-            { name: "Ansel", img: "/assets/Profile5.png" },
-          ].map((profile, index) => (
+          {profiles.map((profile, index) => (
             <div key={index} className="flex flex-col items-center">
               <img
                 src={profile.img}
@@ -67,7 +90,7 @@ const MessagesAndMatches = ({ next }) => {
         </div>
       </div>
 
-      {/* Messages Section */}
+      {/* Messages Section (하드코딩) */}
       <div className="px-6 mt-8">
         <h2 className="text-lg font-bold text-gray-900">Messages</h2>
         <div className="mt-4 space-y-4">
@@ -81,7 +104,8 @@ const MessagesAndMatches = ({ next }) => {
           ].map((chat, index) => (
             <div
               key={index}
-              className="flex items-center bg-white shadow rounded-lg p-4">
+              className="flex items-center bg-white shadow rounded-lg p-4"
+            >
               <img
                 src={chat.img}
                 alt={chat.name}

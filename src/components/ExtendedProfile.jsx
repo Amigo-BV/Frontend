@@ -1,30 +1,47 @@
 import React from 'react';
 
-const ExtendedProfile = ({ back }) => {
+const ExtendedProfile = ({ back, userData }) => {
+  // userData가 없을 경우 기본값 처리
+  if (!userData) {
+    return (
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white p-4">
+        <p>Loading...</p>
+        <button
+          onClick={back}
+          className="w-full py-4 bg-gray-500 text-white rounded-xl font-bold text-lg"
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
+
+  // 이미지 URL
+  const profileImageUrl = userData.profileImageCID
+    ? `https://gateway.pinata.cloud/ipfs/${userData.profileImageCID}`
+    : '/assets/Image.png'; // 기본 이미지
+
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white font-['Inter'] p-4">
-    
       <div className="w-[414px] h-auto flex-col items-center bg-white">
-        {/* Header Section */}
+        {/* Header Section (프로필 메인 이미지) */}
         <div className="w-full h-[505px] shadow-md relative">
           <img
-            src="/assets/Image.png" // 배경 이미지 경로
-            alt="Background"
-            className="w-full h-full object-cover" 
+            src={profileImageUrl} 
+            alt="User Background"
+            className="w-full h-full object-cover"
           />
         </div>
 
         {/* Profile Info */}
         <div className="px-5 mt-5">
           <h1 className="text-2xl font-black text-gray-900">
-            Gabriel Taveira<span className="font-medium">, 20</span>
+            {userData.username || 'Loading...'}
+            <span className="font-medium">, 20</span>
           </h1>
           <p className="text-sm font-medium text-gray-700 mt-2">
-            Studying Business at UCLA
-          </p>
-          <p className="text-sm text-gray-700 mt-2">
-            Just a traveler from California, falling in love with Korea. 🇰🇷 Exploring
-            Seoul, enjoying the food, and hoping to meet great people along the way!
+            {/* 사용자가 입력한 추가 정보가 없을 경우 기본 텍스트 */}
+            {userData.about || 'This user has not provided any additional information.'}
           </p>
         </div>
 
@@ -102,12 +119,15 @@ const ExtendedProfile = ({ back }) => {
 
         {/* Actions */}
         <div className="mt-6 px-5 text-center">
-          <button className="text-red-500 text-sm font-medium">Share Gabriel’s Profile</button>
+          <button className="text-red-500 text-sm font-medium">
+            Share {userData.username}'s Profile
+          </button>
           <div className="mt-2">
-            <button className="text-gray-700 text-sm font-medium">Report Gabriel</button>
+            <button className="text-gray-700 text-sm font-medium">
+              Report {userData.username}
+            </button>
           </div>
         </div>
-
       </div>
     </div>
   );
