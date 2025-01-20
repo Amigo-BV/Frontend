@@ -10,34 +10,55 @@ import ExtendedProfile from "./components/ExtendedProfile";
 import MessagesAndMatches from "./components/MessagesAndMatches";
 
 function App() {
-  const [screen, setScreen] = useState("splash"); // 현재 화면 상태
-  const [userData, setUserData] = useState({}); // 사용자 데이터를 저장
-  const [previousScreen, setPreviousScreen] = useState(null); // 이전 화면 상태
+  const [screen, setScreen] = useState("splash"); 
+  const [userData, setUserData] = useState({}); 
+  const [previousScreen, setPreviousScreen] = useState(null);
 
-  // 화면 변경 시 이전 화면을 저장
+  // 화면 변경 시 이전 화면 저장 + userData 업데이트
   const goToNextScreen = (nextScreen, data = {}) => {
-    setPreviousScreen(screen); // 현재 화면을 이전 화면으로 저장
-    setUserData((prev) => ({ ...prev, ...data })); // 사용자 입력 저장
-    setScreen(nextScreen); // 다음 화면으로 이동
+    setPreviousScreen(screen);
+    setUserData((prev) => ({ ...prev, ...data }));
+    setScreen(nextScreen);
   };
 
   // 이전 화면으로 돌아가기
   const goToPreviousScreen = () => {
     if (previousScreen) {
-      setScreen(previousScreen); // 이전 화면으로 이동
+      setScreen(previousScreen);
     }
   };
 
   const renderScreen = () => {
     switch (screen) {
       case "splash":
-        return <SplashScreen next={() => goToNextScreen("login")} />;
+        return (
+          <SplashScreen
+            next={() => goToNextScreen("login")}
+          />
+        );
       case "login":
-        return <LoginScreen next={(phone) => goToNextScreen("verify", { phone })} />;
+        return (
+          <LoginScreen
+            // phoneNumber 입력 후
+            next={(phone) => goToNextScreen("verify", { phone })}
+          />
+        );
       case "verify":
-        return <VerificationCode next={() => goToNextScreen("profile")} back={goToPreviousScreen} />;
+        return (
+          <VerificationCode
+            // 인증코드 완료 후
+            next={() => goToNextScreen("profile")}
+            back={goToPreviousScreen}
+          />
+        );
       case "profile":
-        return <ProfileForm next={(profileData) => goToNextScreen("location", profileData)} />;
+        // userData.phone을 넘겨줌 (ProfileForm에서 전화번호도 전송 가능)
+        return (
+          <ProfileForm
+            phone={userData.phone || ""}
+            next={(profileData) => goToNextScreen("location", profileData)}
+          />
+        );
       case "location":
         return <LocationPermission next={() => goToNextScreen("loading")} />;
       case "loading":
